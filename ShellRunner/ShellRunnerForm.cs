@@ -41,8 +41,10 @@ namespace ShellRunner
       InitializeComponent();
 
       Version v = new Version(Application.ProductVersion);
-      this.versionStatusLabel.Text = "Shell Runner v" + v.Major.ToString() + "." + v.Minor.ToString() + "." + v.Build.ToString() + " by MOBZystems";
-      // (" + (IntPtr.Size * 8).ToString() + "-bit)";
+      this.versionStatusLabel.Text = "Shell Runner v" 
+        + v.Major.ToString() + "." + v.Minor.ToString() + "." + v.Build.ToString()
+        + " (" + (IntPtr.Size * 8).ToString() + "-bit)"
+        + " by MOBZystems";
 
       this.splitContainer.Panel2Collapsed = true;
 
@@ -72,7 +74,7 @@ namespace ShellRunner
                   return;
                 try
                 {
-                  this.input = File.ReadAllText(argument.Substring(3));
+                  this.input = File.ReadAllText(argument.Substring(3), System.Text.Encoding.Default);
                 }
                 catch (Exception ex)
                 {

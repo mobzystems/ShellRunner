@@ -10,4 +10,4 @@ cd \zzzz
 echo 4
 gliegla
 echo 5
-exit
+exit /b 2005

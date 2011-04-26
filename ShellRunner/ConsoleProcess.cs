@@ -18,7 +18,7 @@ namespace ShellRunner
   {
     #region "Windows 32 API"
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential)]
     private struct PROCESS_INFORMATION
     {
       public IntPtr hProcess;
@@ -27,18 +27,44 @@ namespace ShellRunner
       public uint dwThreadId;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    private struct PROCESS_BASIC_INFORMATION
+    /*
+     * Problem: this structure is used differently from its documentation.
+     * ExitStatus, UniqueProcessID and InheritedFromUniqueProcessID all contain real values,
+     * but are documented as pointers (IntPtr).
+     * 
+     * Therefore, we have to declare two versions of the structures
+     * and two versions of the NTDLL entry point, one for each structure.
+     * 
+     * This works, but is utterly unelegant!
+     */
+
+    // 32-bit version of PROCESS_BASIC_INFORMATION.
+    // All pointers are Int32 (or IntPtr)
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_BASIC_INFORMATION_32
     {
-      public int ExitStatus;
-      public int PebBaseAddress;
-      public int AffinityMask;
-      public int BasePriority;
-      public uint UniqueProcessId;
-      public uint InheritedFromUniqueProcessId;
+      public Int32 ExitStatus;                    // PVOID
+      public IntPtr PebBaseAddress;               // PPEB
+      public Int32 AffinityMask;                  // PVOID
+      public Int32 BasePriority;                  // PVOID
+      public UInt32 UniqueProcessId;              // ULONG_PTR
+      public UInt32 InheritedFromUniqueProcessId; // PVOID
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    // 64-bit version of PROCESS_BASIC_INFORMATION.
+    // All pointers are Int64 (or IntPtr)
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_BASIC_INFORMATION_64
+    {
+      public Int64 ExitStatus;                    // PVOID
+      public IntPtr PebBaseAddress;               // PPEB
+      public Int64 AffinityMask;                  // PVOID
+      public Int64 BasePriority;                  // PVOID
+      public UInt64 UniqueProcessId;              // ULONG_PTR
+      public UInt64 InheritedFromUniqueProcessId; // PVOID
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     private struct STARTUPINFO
     {
       public uint cb;
@@ -61,7 +87,7 @@ namespace ShellRunner
       public IntPtr hStdError;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential)]
     private struct SECURITY_ATTRIBUTES
     {
       public int length;
@@ -102,10 +128,10 @@ namespace ShellRunner
     static extern uint CloseHandle(IntPtr hHandle);
 
     [DllImport("kernel32.dll")]
-    static extern uint ReadFile(IntPtr handle, ref byte buffer, uint bufsize, out uint dwRead, IntPtr OverlappedRead);
+    static extern uint ReadFile(IntPtr handle, byte[] buffer, uint bufsize, out uint dwRead, IntPtr OverlappedRead);
 
     [DllImport("kernel32.dll")]
-    static extern uint WriteFile(IntPtr handle, ref byte buffer, uint bufsize, out uint dwWritten, IntPtr OverlappedRead);
+    static extern uint WriteFile(IntPtr handle, byte[] buffer, uint bufsize, out uint dwWritten, IntPtr OverlappedRead);
 
     [DllImport("kernel32.dll")]
     static extern uint WaitForMultipleObjects(uint count, ref IntPtr handles, short waitAll, uint dwMilliSeconds);
@@ -119,9 +145,15 @@ namespace ShellRunner
     [DllImport("kernel32.dll")]
     static extern uint TerminateThread(IntPtr hThread, int exitCode);
 
-    [DllImport("ntdll.dll")]
-    static extern int NtQueryInformationProcess(IntPtr hProcess, int processInformationClass /* 0 */,
-      ref PROCESS_BASIC_INFORMATION processBasicInformation, uint processInformationLength, out uint returnLength);
+    // 32-bit version of NtQueryInformationProcess
+    [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationProcess")]
+    static extern int NtQueryInformationProcess32(IntPtr hProcess, int processInformationClass /* 0 */,
+      ref PROCESS_BASIC_INFORMATION_32 processBasicInformation, int processInformationLength, out uint returnLength);
+
+    // 64-bit version of NtQueryInformationProcess
+    [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationProcess")]
+    static extern int NtQueryInformationProcess64(IntPtr hProcess, int processInformationClass /* 0 */,
+      ref PROCESS_BASIC_INFORMATION_64 processBasicInformation, int processInformationLength, out uint returnLength);
 
     #endregion
 
@@ -317,9 +349,9 @@ namespace ShellRunner
         ResumeThread(this.processInformation.hThread);
 
         // Wait for the process to end
-        switch (WaitForMultipleObjects(1, 
-          ref this.processInformation.hProcess, 
-          1 /* true */, 
+        switch (WaitForMultipleObjects(1,
+          ref this.processInformation.hProcess,
+          1 /* true */,
           timeoutMilliSeconds)
         )
         {
@@ -416,27 +448,45 @@ namespace ShellRunner
     /// Terminate a process tree
     /// </summary>
     /// <param name="hProcess">The handle of the process</param>
-    /// <param name="processID">The ID of the process</param>
+    /// <param name="processID">The ID of the process. Passed as UInt64 to make sure it works in both 32- and 64-bit environments</param>
     /// <param name="exitCode">The exit code of the process</param>
-    public void TerminateProcessTree(IntPtr hProcess, uint processID, int exitCode)
+    public void TerminateProcessTree(IntPtr hProcess, UInt64 processID, int exitCode)
     {
-      // Retrieve all processes on the system
       Process[] processes = Process.GetProcesses();
+      // Retrieve all processes on the system
       foreach (Process p in processes)
       {
-        // Get some basic information about the process
-        PROCESS_BASIC_INFORMATION pbi = new PROCESS_BASIC_INFORMATION();
         try
         {
-          uint bytesWritten;
-          NtQueryInformationProcess(p.Handle,
-            0, ref pbi, (uint)Marshal.SizeOf(pbi),
-            out bytesWritten); // == 0 is OK
+          // Get some basic information about the process
+          if (IntPtr.Size == 4)
+          {
+            // 32-bit
+            PROCESS_BASIC_INFORMATION_32 pbi = new PROCESS_BASIC_INFORMATION_32();
+            uint bytesWritten;
+            NtQueryInformationProcess32(p.Handle,
+              0, ref pbi, Marshal.SizeOf(pbi),
+              out bytesWritten); // == 0 is OK
 
-          // Is it a child process of the process we're trying to terminate?
-          if (pbi.InheritedFromUniqueProcessId == processID)
-            // The terminate the child process and its child processes
-            TerminateProcessTree(p.Handle, pbi.UniqueProcessId, exitCode);
+            // Is it a child process of the process we're trying to terminate?
+            if (pbi.InheritedFromUniqueProcessId == processID)
+              // The terminate the child process and its child processes
+              TerminateProcessTree(p.Handle, pbi.UniqueProcessId, exitCode);
+          }
+          else
+          {
+            // 64-bit
+            PROCESS_BASIC_INFORMATION_64 pbi = new PROCESS_BASIC_INFORMATION_64();
+            uint bytesWritten;
+            NtQueryInformationProcess64(p.Handle,
+              0, ref pbi, Marshal.SizeOf(pbi),
+              out bytesWritten); // == 0 is OK
+
+            // Is it a child process of the process we're trying to terminate?
+            if (pbi.InheritedFromUniqueProcessId == processID)
+              // The terminate the child process and its child processes
+              TerminateProcessTree(p.Handle, pbi.UniqueProcessId, exitCode);
+          }
         }
         catch (Exception /* ex */)
         {
@@ -486,9 +536,9 @@ namespace ShellRunner
     private void WriteStandardInput(object input)
     {
       string standardInput = (string)input;
-      byte[] buf = Encoding.ASCII.GetBytes(standardInput);
+      byte[] buf = Encoding.Default.GetBytes(standardInput);
       uint dwWritten;
-      WriteFile(hChildStdinWr, ref buf[0], (uint)buf.Length, out dwWritten, IntPtr.Zero);
+      WriteFile(hChildStdinWr, buf, (uint)buf.Length, out dwWritten, IntPtr.Zero);
       CloseHandle(hChildStdinWr);
     }
 
@@ -503,12 +553,12 @@ namespace ShellRunner
 
       for (; ; )
       {
-        if (ReadFile(hChildStdoutRd, ref chBuf[0], BUFSIZE, out dwRead, IntPtr.Zero) == 0)
+        if (ReadFile(hChildStdoutRd, chBuf, BUFSIZE, out dwRead, IntPtr.Zero) == 0)
           break;
 
         if (dwRead != 0)
         {
-          string output = Encoding.ASCII.GetString(chBuf, 0, (int)dwRead);
+          string output = Encoding.Default.GetString(chBuf, 0, (int)dwRead);
 
           this.currentOutputLine += output;
 
@@ -546,12 +596,12 @@ namespace ShellRunner
 
       for (; ; )
       {
-        if (ReadFile(hChildStdErrorRd, ref chBuf[0], BUFSIZE, out dwRead, IntPtr.Zero) == 0)
+        if (ReadFile(hChildStdErrorRd, chBuf, BUFSIZE, out dwRead, IntPtr.Zero) == 0)
           break;
 
         if (dwRead != 0)
         {
-          string error = System.Text.Encoding.ASCII.GetString(chBuf, 0, (int)dwRead);
+          string error = System.Text.Encoding.Default.GetString(chBuf, 0, (int)dwRead);
 
           this.currentErrorLine += error;
 

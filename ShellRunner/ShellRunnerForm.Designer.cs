@@ -34,6 +34,7 @@ namespace ShellRunner
       this.standardErrorTextBox = new System.Windows.Forms.RichTextBox();
       this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
       this.mainStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+      this.versionStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
       this.mainToolStrip = new System.Windows.Forms.ToolStrip();
       this.commandToolStripComboBox = new System.Windows.Forms.ToolStripComboBox();
       this.startToolStripButton = new System.Windows.Forms.ToolStripButton();
@@ -43,7 +44,6 @@ namespace ShellRunner
       this.clearLogToolStripButton = new System.Windows.Forms.ToolStripButton();
       this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
       this.saveLogToolStripButton = new System.Windows.Forms.ToolStripButton();
-      this.versionStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
       this.splitContainer.Panel1.SuspendLayout();
       this.splitContainer.Panel2.SuspendLayout();
       this.splitContainer.SuspendLayout();
@@ -113,6 +113,18 @@ namespace ShellRunner
       this.mainStatusLabel.Size = new System.Drawing.Size(478, 17);
       this.mainStatusLabel.Spring = true;
       this.mainStatusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+      // 
+      // versionStatusLabel
+      // 
+      this.versionStatusLabel.IsLink = true;
+      this.versionStatusLabel.LinkColor = System.Drawing.Color.Blue;
+      this.versionStatusLabel.Name = "versionStatusLabel";
+      this.versionStatusLabel.Size = new System.Drawing.Size(196, 17);
+      this.versionStatusLabel.Text = "ShellRunner vX.Y.Z by MOBZystems";
+      this.versionStatusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+      this.versionStatusLabel.ToolTipText = "http://www.mobzystems.com/tools/ShellRunner.aspx";
+      this.versionStatusLabel.VisitedLinkColor = System.Drawing.Color.Blue;
+      this.versionStatusLabel.Click += new System.EventHandler(this.versionStatusLabel_Click);
       // 
       // mainToolStrip
       // 
@@ -203,18 +215,6 @@ namespace ShellRunner
       this.saveLogToolStripButton.Text = "Save";
       this.saveLogToolStripButton.ToolTipText = "Save log";
       this.saveLogToolStripButton.Click += new System.EventHandler(this.saveLogToolStripButton_Click);
-      // 
-      // versionStatusLabel
-      // 
-      this.versionStatusLabel.IsLink = true;
-      this.versionStatusLabel.LinkColor = System.Drawing.Color.Blue;
-      this.versionStatusLabel.Name = "versionStatusLabel";
-      this.versionStatusLabel.Size = new System.Drawing.Size(196, 17);
-      this.versionStatusLabel.Text = "ShellRunner vX.Y.Z by MOBZystems";
-      this.versionStatusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-      this.versionStatusLabel.ToolTipText = "http://www.mobzystems.com/tools/ShellRunner.aspx";
-      this.versionStatusLabel.VisitedLinkColor = System.Drawing.Color.Blue;
-      this.versionStatusLabel.Click += new System.EventHandler(this.versionStatusLabel_Click);
       // 
       // ShellRunnerForm
       // 
