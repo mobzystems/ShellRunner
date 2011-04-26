@@ -37,7 +37,7 @@
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
-        "Compression" = "3:2"
+        "Compression" = "3:3"
         "SignOutput" = "11:FALSE"
         "CertificateFile" = "8:"
         "PrivateKeyFile" = "8:"
@@ -117,7 +117,7 @@
                 {
                 "Name" = "8:.NET Framework"
                 "Message" = "8:[VSDNETMSG]"
-                "FrameworkVersion" = "8:.NETFramework,Version=v3.5"
+                "FrameworkVersion" = "8:.NETFramework,Version=v2.0"
                 "AllowLaterVersions" = "11:FALSE"
                 "InstallUrl" = "8:http://go.microsoft.com/fwlink/?LinkId=9832"
                 }
@@ -155,7 +155,7 @@
             }
             "{3C67513D-01DD-4637-8A68-80971EB9504F}:_F4C5077324754CD48F429A430F06E865"
             {
-            "DefaultLocation" = "8:[ProgramFilesFolder]\\[Manufacturer]\\[ProductName]"
+            "DefaultLocation" = "8:[ProgramFiles64Folder][Manufacturer]\\[ProductName]"
             "Name" = "8:#1925"
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
@@ -182,7 +182,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Shell Runner"
         "ProductCode" = "8:{C963F7EB-BFA3-48CE-873A-BF7D909F704E}"
-        "PackageCode" = "8:{EC501D7F-FAE4-43A5-9DCA-D997BF3A0862}"
+        "PackageCode" = "8:{153AD36D-13A3-406D-A655-56E4A5CEFA53}"
         "UpgradeCode" = "8:{5E6C08A0-403A-41A8-93E1-E6394A8AAC70}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
